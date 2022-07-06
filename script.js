@@ -64,3 +64,30 @@ const inputTransferAmount = document.querySelector('.form__input--amount');
 const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
+
+//Creating a function to displayMovements -> It will receive an array of movements, and work with that data to display them from the 'newest' (last) movement until the 'oldest' (first) movement.
+const displayMovements = function (movements) {
+  //Before starting to 'fill the container' we actually need to clean it up (because in the original HTML file, there are 2 pattern movements)
+  containerMovements.innerHTML = ''; //innerHTML is similar to the .textContent property, but .textContent simply returns the text itself, while .innerHTML returns everything, including all the HTML tags,
+
+  //'movements' will be an array!
+  movements.forEach(function (mov, index) {
+    //The class name depends if is a deposit or a withdrawal:
+    const type = mov < 0 ? 'withdrawal' : 'deposit';
+
+    //We must create a movement_row to each element of the array
+    const html = `    
+      <div class="movements__row">
+          <div class="movements__type movements__type--${type}">${
+      index + 1
+    } ${type}</div>
+          <div class="movements__value">${mov}€</div>
+        </div>
+     `;
+
+    //Now we need to attach this 'html' variable into the div 'movements' container
+    containerMovements.insertAdjacentHTML('afterbegin', html);
+  });
+};
+
+displayMovements(account1.movements);
