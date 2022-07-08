@@ -88,8 +88,8 @@ nav {
   gap: 2rem;
 
   /* NOTE This creates the fade in/out anumation */
-  /* Commenting out the opacity just to try the displayMovements function */
-  /*opacity: 0;*/
+  /* Commenting out the opacity just to try the displayMovements function -> ALREADY ADJUSTED */
+  opacity: 0;
   transition: all 1s;
 }
 
@@ -289,4 +289,14 @@ h2 {
 
 .timer {
   font-weight: 600;
+}
+
+/* New Styles */
+.loginConditions {
+  font-size: 1.5rem;
+  margin-left: 82%;
+}
+
+.hidden {
+  opacity: 0;
 }
