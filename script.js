@@ -48,6 +48,10 @@ const labelSumOut = document.querySelector('.summary__value--out');
 const labelSumInterest = document.querySelector('.summary__value--interest');
 const labelTimer = document.querySelector('.timer');
 const labelLoginConditions = document.querySelector('.loginConditions');
+const labelTransferMessage = document.querySelector('.transferMessage');
+const labelDeletedAccount = document.querySelector('.deletedAccount');
+const labelCloseAccountMessage = document.querySelector('.closeAccountMessage');
+const labelLoanMessage = document.querySelector('.loanMessage');
 
 const containerApp = document.querySelector('.app');
 const containerMovements = document.querySelector('.movements');
@@ -67,12 +71,16 @@ const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
 //Creating a function to displayMovements -> It will receive an array of movements, and work with that data to display them from the 'newest' (last) movement until the 'oldest' (first) movement.
-const displayMovements = function (movements) {
+// Adding the sorting step to the displayMovements function (set to false by default, only true when we click)
+const displayMovements = function (movements, sort = false) {
   //Before starting to 'fill the container' we actually need to clean it up (because in the original HTML file, there are 2 pattern movements)
   containerMovements.innerHTML = ''; //innerHTML is similar to the .textContent property, but .textContent simply returns the text itself, while .innerHTML returns everything, including all the HTML tags,
 
-  //'movements' will be an array!
-  movements.forEach(function (mov, index) {
+  // Creating a variable to check whether the sort parameter is true or false. If true, we create a copy of the movements array and then sort it (ascending order). If false (default) movs will simply be movements
+  const movs = sort ? movements.slice().sort((a, b) => a - b) : movements;
+
+  //'movs' will be an array!
+  movs.forEach(function (mov, index) {
     //The class name depends if is a deposit or a withdrawal:
     const type = mov < 0 ? 'withdrawal' : 'deposit';
 
@@ -94,14 +102,14 @@ const displayMovements = function (movements) {
 // displayMovements(account1.movements);
 
 // Implementing the BALANCE to sum up all the movements in one account by getting all its movements
-const calcDisplayBalance = function (movements) {
+const calcDisplayBalance = function (account) {
   //We are using the .reduce method to add up the acumulator with all the array elements. The accumulator starts at 0
-  const balance = movements.reduce(
+  account.balance = account.movements.reduce(
     (accumulator, currentMov) => accumulator + currentMov,
     0
   );
   //After we calculate the final balance, we will show it on the screen, on the labelBalance object
-  labelBalance.textContent = `${balance}€`;
+  labelBalance.textContent = `${account.balance}€`;
 };
 //Setting the function just for one of the accounts' movements to see the result on the screen (JUST CHECKING)
 //calcDisplayBalance(account1.movements);
@@ -124,7 +132,8 @@ const calcDisplaySummary = function (account) {
     .map(deposit => (deposit * account.interestRate) / 100) //Each client has a specific interest rate!
     .filter(interest => interest > 1) //If the interes is less then 1, it does not count/ sum up
     .reduce((accum, interests) => accum + interests, 0);
-  labelSumInterest.textContent = `${interest}€`;
+  // labelSumInterest.textContent = `${interest}€`;
+  labelSumInterest.textContent = `${Math.round(interest * 100) / 100}€`;
 };
 //Setting the function just for one of the accounts' movements to see the result on the screen (JUST CHECKING)
 // calcDisplaySummary(account1.movements);
@@ -146,6 +155,16 @@ const createUsernames = function (accs) {
 createUsernames(accounts);
 
 // console.log(accounts); //Logging to the console, just to make sure we have all the usernames created for each of the accounts
+
+//Creating a function to update all the functions at once, when needed!
+const updateUI = function (account) {
+  //Display movements
+  displayMovements(account.movements);
+  //Display balance
+  calcDisplayBalance(account); //This one needs the account as parameter, not just the movements
+  //Display summary
+  calcDisplaySummary(account); //This one needs the account as parameter, not just the movements
+};
 
 // Event Handlers
 
@@ -174,12 +193,8 @@ btnLogin.addEventListener('click', function (e) {
     }!`;
     //Making the class .app 'appear' -> We must display the UI
     containerApp.style.opacity = '1'; //Showing all the information!
-    //Display movements
-    displayMovements(currentAccount.movements);
-    //Display balance
-    calcDisplayBalance(currentAccount.movements);
-    //Display summary
-    calcDisplaySummary(currentAccount); //This one needs the account as parameter, not just the movements
+    // This will displayMovements, calcDisplayBalance and calcDisplay Summary
+    updateUI(currentAccount);
     //As soon as we log in, we must 'get rid' of the data in the input fields (Clear input fields)
     inputLoginUsername.value = inputLoginPin.value = '';
     inputLoginUsername.blur(); //Just so it loses its focus
@@ -191,5 +206,213 @@ btnLogin.addEventListener('click', function (e) {
     inputLoginUsername.value = inputLoginPin.value = '';
     inputLoginUsername.blur(); //Just so it loses its focus
     inputLoginPin.blur(); //Just so it loses its focus
+    labelWelcome.textContent = 'Log in to get started';
   }
+});
+
+// Implementing the transfer function
+btnTransfer.addEventListener('click', function (e) {
+  //Remember that the btnTransfer is a FORM, then each time it's clicked, the page reloads! So we must prevent form from submitting
+  e.preventDefault();
+
+  //Creating variables:
+  const amount = Number(inputTransferAmount.value); //Establishing the document element to a variable to then use the variable to the if/else statements
+  //The receiverAccount will only exist if we find the username. If not, receiverAccount = undefined
+  const receiverAccount = accounts.find(function (account) {
+    return account.username === inputTransferTo.value;
+  });
+
+  // console.log(receiverAccount); //Just checking if the find method is actually working
+
+  // IF / ELSE Statements for the transfers possibilites
+  // Possibility 1 -> When the transfer is valid
+  if (
+    receiverAccount?.username !== currentAccount.username &&
+    amount > 0 &&
+    currentAccount.balance >= amount &&
+    receiverAccount
+  ) {
+    // console.log('Transfer made!');
+
+    //Showing temporary message to the interface
+    labelTransferMessage.textContent = 'Transfer succeeded ✅';
+    labelTransferMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelTransferMessage.classList.add('hidden');
+    }, 2000);
+
+    //Add negative movement to the currentAccount
+    currentAccount.movements.push(-amount);
+    //Add positive movement to the receiverAccount
+    receiverAccount.movements.push(amount);
+    //Update the page of the currentAccount -> This will displayMovements, calcDisplayBalance and calcDisplay Summary UPDATED
+    updateUI(currentAccount);
+  } // Possibility 2 -> When the receiverAccount does not exist
+  else if (receiverAccount === undefined) {
+    // console.log('Incorrect Username / Missing data');
+
+    //Showing temporary message to the interface
+    labelTransferMessage.textContent = 'Username not valid ❌';
+    labelTransferMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelTransferMessage.classList.add('hidden');
+    }, 2000);
+  } // Possibility 3 -> When the receiverAccount is the same as the logged account
+  else if (receiverAccount.username === currentAccount.username) {
+    // console.log('You cannot transfer money to yourself.');
+
+    //Showing temporary message to the interface
+    labelTransferMessage.textContent =
+      'You cannot transfer money to yourself ❌';
+    labelTransferMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelTransferMessage.classList.add('hidden');
+    }, 2000);
+  } // Possibility 4 -> When the intended transfer amount is greater than the current balance of the user
+  else if (currentAccount.balance < amount) {
+    // console.log("You don't have enough money!");
+
+    //Showing temporary message to the interface
+    labelTransferMessage.textContent = "You don't have enough money ❌";
+    labelTransferMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelTransferMessage.classList.add('hidden');
+    }, 2000);
+  } // Possibility 5 -> When the intended transfer amount is zero or a negative number
+  else if (amount <= 0) {
+    // console.log('Amount must be greater than 0!');
+
+    //Showing temporary message to the interface
+    labelTransferMessage.textContent = 'Amount must be greater than 0 ❌';
+    labelTransferMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelTransferMessage.classList.add('hidden');
+    }, 2000);
+  }
+
+  //Cleaning up the input fields
+  inputTransferAmount.value = inputTransferTo.value = '';
+  inputTransferAmount.blur(); //Just so it loses its focus
+  inputTransferTo.blur(); //Just so it loses its focus
+});
+
+//Implementing the LOAN REQUEST functionality (Condition = The bank only grants a loan if there is at least 1 deposit with at least 10% of the requested loan amount!)
+btnLoan.addEventListener('click', function (e) {
+  //Remember that the btnLoan is a FORM, then each time it's clicked, the page reloads! So we must prevent form from submitting
+  e.preventDefault();
+
+  // Creating a variable with the user intended loan amount
+  const amount = Number(inputLoanAmount.value);
+  // console.log(amount); //Just to see if the value is correct.
+
+  // CONDITIONS FOR THE LOAN TO BE APPROVED: Amount must be greater than 0 and there must be at least 1 movement with at least 10% of the requested amount (.some method)
+  if (amount > 0 && currentAccount.movements.some(mov => mov >= amount * 0.1)) {
+    // Showing the "Analyzing request" message
+    labelLoanMessage.textContent = 'Analyzing request... ⏳';
+    labelLoanMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelLoanMessage.classList.add('hidden');
+    }, 3000);
+
+    // Accepting the request after 3 seconds of wait (analysis)
+    setTimeout(function () {
+      //Add positive movement to the currentAccount
+      currentAccount.movements.push(amount);
+      //Update the page of the currentAccount -> This will displayMovements, calcDisplayBalance and calcDisplay Summary UPDATED
+      updateUI(currentAccount);
+      // Showing the "Loan Approved!" message
+      labelLoanMessage.textContent = 'Loan Approved! ✅';
+      labelLoanMessage.classList.remove('hidden');
+      setTimeout(function () {
+        labelLoanMessage.classList.add('hidden');
+      }, 2000);
+    }, 3000);
+  } //If the amount is zero or less than zero, it is not a valid value!
+  else if (amount <= 0) {
+    console.log('Not a valid value ❌');
+    //Showing temporary message to the interface
+    labelLoanMessage.textContent = 'Amount must be greater than 0 ❌';
+    labelLoanMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelLoanMessage.classList.add('hidden');
+    }, 2000);
+  } //Last, if there isn't a movement which is at least 10% of the requested amount, the loan is denied!
+  else if (!currentAccount.movements.some(mov => mov >= amount * 0.1)) {
+    // Showing the "Analyzing request" message
+    labelLoanMessage.textContent = 'Analyzing request... ⏳';
+    labelLoanMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelLoanMessage.classList.add('hidden');
+    }, 3000);
+
+    // Refusing the request after 3 seconds of wait (analysis)
+    setTimeout(function () {
+      // Showing the "Loan Refused!" message
+      labelLoanMessage.textContent = 'Loan Refused! ❌ Too much money!';
+      labelLoanMessage.classList.remove('hidden');
+      setTimeout(function () {
+        labelLoanMessage.classList.add('hidden');
+      }, 2000);
+    }, 3000);
+  }
+  // Setting the inputs information back to blank
+  inputLoanAmount.value = '';
+  inputLoanAmount.blur(); //Just so it loses its focus
+});
+
+//Implementing the CLOSE ACCOUNT function (Deleting the account object from the accounts array)
+btnClose.addEventListener('click', function (e) {
+  //Remember that the btnClose is a FORM, then each time it's clicked, the page reloads! So we must prevent form from submitting
+  e.preventDefault();
+
+  // Storing variables for the user inputs -> Username and Password
+  const closeUsername = inputCloseUsername.value;
+  const closePin = Number(inputClosePin.value);
+  // console.log(closeUsername, closePin); //Just to see if the variables are actually working
+
+  //Only if the information is correct, the deletion will be executed
+  if (
+    closeUsername === currentAccount.username &&
+    closePin === currentAccount.pin
+  ) {
+    //Creating a variable with the index of the actual account object in the accounts array. Doing so, because we need to know what element delete from the accounts array.
+    const currentAccountIndex = accounts.findIndex(function (account) {
+      return account.username === closeUsername;
+    });
+    // console.log('Closed Account!', currentAccountIndex); just to make sure the .findIndex is actually working, also the if conditions
+
+    // Now executing the deletion of the object from the array
+    accounts.splice(currentAccountIndex, 1);
+
+    // Adjusting the UI (Show the 'successful deletion' message and the original UI)
+    labelDeletedAccount.classList.remove('hidden');
+    setTimeout(function () {
+      labelDeletedAccount.classList.add('hidden');
+    }, 2000);
+    containerApp.style.opacity = '0'; //Hiding all the information!
+    labelWelcome.textContent = 'Log in to get started';
+  } else {
+    // Temporarily showing the message: 'Credentials not valid' if the user does not input the right conditions
+    labelCloseAccountMessage.textContent = 'Credentials not valid 🚫';
+    labelCloseAccountMessage.classList.remove('hidden');
+    setTimeout(function () {
+      labelCloseAccountMessage.classList.add('hidden');
+    }, 2000);
+  }
+
+  // Setting the inputs information back to blank
+  inputCloseUsername.value = inputClosePin.value = '';
+  inputCloseUsername.blur(); //Just so it loses its focus
+  inputClosePin.blur(); //Just so it loses its focus
+});
+
+// Implementing the btnSort functionality (set the sort parameter to true):
+// Setting an outside variable to the default sortCodition (which is false, according to the displayMovements function)
+let sortCondition = false;
+
+// When clicking the btnSort, it will run the displayMovements function with the movements from the currentAccount and the opposite of the actual sort condition (If it's false, we will run the function with true), then changing the startCondition variable to it's opposite.
+btnSort.addEventListener('click', function (e) {
+  e.preventDefault();
+  displayMovements(currentAccount.movements, !sortCondition);
+  sortCondition = !sortCondition;
 });

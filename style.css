@@ -87,7 +87,7 @@ nav {
   grid-template-rows: auto repeat(3, 15rem) auto;
   gap: 2rem;
 
-  /* NOTE This creates the fade in/out anumation */
+  /* NOTE This creates the fade in/out animation */
   /* Commenting out the opacity just to try the displayMovements function -> ALREADY ADJUSTED */
   opacity: 0;
   transition: all 1s;
@@ -294,9 +294,36 @@ h2 {
 /* New Styles */
 .loginConditions {
   font-size: 1.5rem;
-  margin-left: 82%;
+  margin-left: 80%;
+  transition: 0.5s;
+  position: fixed;
+}
+
+.deletedAccount {
+  font-size: 1.5rem;
+  margin-left: 78%;
+  transition: 0.5s;
+  position: fixed;
 }
 
 .hidden {
   opacity: 0;
+}
+
+.transferMessage {
+  font-size: 1.5rem;
+  text-align: center;
+  transition: 0.5s;
+}
+
+.closeAccountMessage {
+  font-size: 1.5rem;
+  text-align: center;
+  transition: 0.5s;
+}
+
+.loanMessage {
+  font-size: 1.5rem;
+  text-align: center;
+  transition: 0.5s;
 }
