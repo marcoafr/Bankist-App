@@ -300,10 +300,57 @@ const updateUI = function (account) {
   calcDisplaySummary(account); //This one needs the account as parameter, not just the movements
 };
 
+const startLogoutTimer = function () {
+  // Set the time to 5 minutes (300 seconds)
+  let time = 300;
+
+  // Creating the function of the countdown
+  const tick = function () {
+    // Dividing the amount of seconds to min and seconds
+    const min = String(Math.trunc(time / 60)).padStart(2, 0);
+    const sec = String(time % 60).padStart(2, 0);
+
+    // In each call, print the remaining time to UI
+    labelTimer.textContent = `${min}:${sec}`;
+
+    // When time reaches 0 seconds, stop timer and logout user.
+    if (time === 0) {
+      // Stopping the setInterval
+      clearInterval(timer);
+      // Updating the UI back to the login instructions
+      // Turning on the message: Time expired (for 5 seconds) and then taking it back to the original message
+      labelLoginConditions.classList.remove('hidden');
+      labelLoginConditions.textContent = 'Time expired! ⏳';
+      setTimeout(function () {
+        labelLoginConditions.classList.add('hidden');
+      }, 5000);
+      setTimeout(function () {
+        labelLoginConditions.textContent = 'Wrong login or Password';
+      }, 5500);
+
+      // Display default message
+      labelWelcome.textContent = `Log in to get started`;
+      // Making the class .app 'appear' -> We must display the UI
+      // Showing all the information!
+      containerApp.style.opacity = '0';
+    }
+
+    // Decrease 1 second
+    time--;
+  };
+  // Calling the function immediately
+  tick();
+  // Calling the function every 1 second
+  const timer = setInterval(tick, 1000);
+  // Now, we will return the timer, because if it already exists, it will be cleared when another user logs in
+  return timer;
+};
+
 // Event Handlers
 
-//We will firstly create the current account variable, not assigning it yet
-let currentAccount;
+//We will firstly create the current account variable, not assigning it yet. Also the timer as a global variable.
+let currentAccount, timer;
+
 // Implementing the login function
 btnLogin.addEventListener('click', function (e) {
   //Remember that the btnLogin is a FORM, then each time it's clicked, the page reloads! So we must prevent form from submitting
@@ -359,6 +406,12 @@ btnLogin.addEventListener('click', function (e) {
       currentAccount.locale,
       options
     ).format(now);
+
+    // Timer
+    // If timer already exists (from another logged in user), we clear it
+    if (timer) clearInterval(timer);
+    // Launching timer
+    timer = startLogoutTimer();
 
     // This will displayMovements, calcDisplayBalance and calcDisplay Summary
     updateUI(currentAccount);
@@ -459,6 +512,12 @@ btnTransfer.addEventListener('click', function (e) {
     }, 2000);
   }
 
+  // Resetting timer (It should work only for incativity)
+  // We clear the tiemr that has already been triggered
+  clearInterval(timer);
+  // Relaunching timer
+  timer = startLogoutTimer();
+
   //Cleaning up the input fields
   inputTransferAmount.value = inputTransferTo.value = '';
   inputTransferAmount.blur(); //Just so it loses its focus
@@ -525,6 +584,13 @@ btnLoan.addEventListener('click', function (e) {
       }, 2000);
     }, 3000);
   }
+
+  // Resetting timer (It should work only for incativity)
+  // We clear the tiemr that has already been triggered
+  clearInterval(timer);
+  // Relaunching timer
+  timer = startLogoutTimer();
+
   // Setting the inputs information back to blank
   inputLoanAmount.value = '';
   inputLoanAmount.blur(); //Just so it loses its focus
